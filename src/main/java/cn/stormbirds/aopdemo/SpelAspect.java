@@ -3,6 +3,7 @@ package cn.stormbirds.aopdemo;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.reflect.CodeSignature;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.core.LocalVariableTableParameterNameDiscoverer;
 import org.springframework.expression.EvaluationContext;
@@ -20,10 +21,24 @@ public class SpelAspect {
  
     private ExpressionParser parser = new SpelExpressionParser();
     private LocalVariableTableParameterNameDiscoverer discoverer = new LocalVariableTableParameterNameDiscoverer();
-    
+
+    private StandardEvaluationContext getContextContainingArguments(ProceedingJoinPoint joinPoint) {
+        StandardEvaluationContext context = new StandardEvaluationContext();
+
+        CodeSignature codeSignature = (CodeSignature) joinPoint.getSignature();
+        String[] parameterNames = codeSignature.getParameterNames();
+        Object[] args = joinPoint.getArgs();
+
+        for (int i = 0; i < parameterNames.length; i++) {
+            context.setVariable(parameterNames[i], args[i]);
+        }
+        return context;
+    }
+
     @Around(value = "@annotation(cn.stormbirds.aopdemo.IsUser)")
     public Object test(ProceedingJoinPoint point) throws Throwable {
         Object result;
+        StandardEvaluationContext context = getContextContainingArguments(point);
         // 获取方法参数值
         Object[] arguments = point.getArgs();
         // 获取方法
